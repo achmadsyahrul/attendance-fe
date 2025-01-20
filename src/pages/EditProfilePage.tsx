@@ -126,42 +126,42 @@ const EditProfilePage: React.FC = () => {
       <Navbar />
       <div className="flex items-center justify-center mx-auto mt-8">
         <div className="bg-white p-6 rounded shadow-md w-full max-w-md">
-          <h2 className="text-xl mb-4">Edit Profile</h2>
+          <h2 className="text-xl">Edit Profile</h2>
           <form onSubmit={handleSubmit(onSubmit)}>
             <input
               type="text"
               {...register('firstName', { required: 'First name is required' })}
-              className="w-full p-2 mb-4 border border-gray-300 rounded"
+              className="w-full p-2 mt-4 border border-gray-300 rounded"
               placeholder="First Name"
             />
             {errors.firstName && <p className="text-red-500">{errors.firstName.message}</p>}
             <input
               type="text"
               {...register('lastName', { required: 'Last name is required' })}
-              className="w-full p-2 mb-4 border border-gray-300 rounded"
+              className="w-full p-2 mt-4 border border-gray-300 rounded"
               placeholder="Last Name"
             />
             {errors.lastName && <p className="text-red-500">{errors.lastName.message}</p>}
             <input
               type="email"
               {...register('email', { required: 'Email is required' })}
-              className="w-full p-2 mb-4 border border-gray-300 rounded"
+              className="w-full p-2 mt-4 border border-gray-300 rounded"
               placeholder="Email"
             />
             {errors.email && <p className="text-red-500">{errors.email.message}</p>}
             <input
               type="text"
               {...register('phone')}
-              className="w-full p-2 mb-4 border border-gray-300 rounded"
+              className="w-full p-2 mt-4 border border-gray-300 rounded"
               placeholder="Phone"
             />
             <input
               type="text"
               {...register('address')}
-              className="w-full p-2 mb-4 border border-gray-300 rounded"
+              className="w-full p-2 mt-4 border border-gray-300 rounded"
               placeholder="Address"
             />
-            <button type="submit" className="w-full bg-blue-500 text-white p-2 rounded">
+            <button type="submit" className="w-full bg-blue-500 text-white p-2 mt-4 rounded">
               Save
             </button>
             {mutation.isError && <p className="text-red-500">Error: {mutation.error.message}</p>}

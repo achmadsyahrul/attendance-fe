@@ -70,36 +70,36 @@ const RegisterPage: React.FC = () => {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <form onSubmit={handleSubmit(onSubmit)} className="bg-white p-6 rounded shadow-md w-96">
-        <h2 className="text-xl mb-4">Register</h2>
+        <h2 className="text-xl">Register</h2>
         <input
           type="text"
           {...register('firstName', { required: 'First name is required' })}
-          className="w-full p-2 mb-4 border border-gray-300 rounded"
+          className="w-full p-2 mt-4 border border-gray-300 rounded"
           placeholder="First Name"
         />
         {errors.firstName && <p className="text-red-500">{errors.firstName.message}</p>}
         <input
           type="text"
           {...register('lastName', { required: 'Last name is required' })}
-          className="w-full p-2 mb-4 border border-gray-300 rounded"
+          className="w-full p-2 mt-4 border border-gray-300 rounded"
           placeholder="Last Name"
         />
         {errors.lastName && <p className="text-red-500">{errors.lastName.message}</p>}
         <input
           type="email"
           {...register('email', { required: 'Email is required' })}
-          className="w-full p-2 mb-4 border border-gray-300 rounded"
+          className="w-full p-2 mt-4 border border-gray-300 rounded"
           placeholder="Email"
         />
         {errors.email && <p className="text-red-500">{errors.email.message}</p>}
         <input
           type="password"
           {...register('password', { required: 'Password is required' })}
-          className="w-full p-2 mb-4 border border-gray-300 rounded"
+          className="w-full p-2 mt-4 border border-gray-300 rounded"
           placeholder="Password"
         />
         {errors.password && <p className="text-red-500">{errors.password.message}</p>}
-        <button type="submit" className="w-full bg-blue-500 text-white p-2 rounded">
+        <button type="submit" className="w-full bg-blue-500 text-white p-2 mt-4 rounded">
           Register
         </button>
         <div className="mt-4">

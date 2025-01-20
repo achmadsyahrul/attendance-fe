@@ -1,8 +1,10 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useCookies } from 'react-cookie'
+import { useForm } from 'react-hook-form'
 import { toast, ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
+import Webcam from 'react-webcam'
 import Navbar from '../components/Navbar'
 
 const timezones = [
@@ -34,22 +36,74 @@ const timezones = [
 ]
 
 const HomePage: React.FC = () => {
-  const [longitude, setLongitude] = useState<number | null>(null)
-  const [latitude, setLatitude] = useState<number | null>(null)
-  const [location, setLocation] = useState('')
-  const [status, setStatus] = useState('PRESENT')
-  const [photo, setPhoto] = useState<File | null>(null)
-  const [startDate, setStartDate] = useState('2024-01-01')
-  const [endDate, setEndDate] = useState('2024-12-31')
+  const today = new Date()
+  const thirtyDaysAgo = new Date(today)
+  thirtyDaysAgo.setDate(today.getDate() - 30)
+
+  const formatDate = (date: Date) => {
+    return date.toISOString().split('T')[0]
+  }
+
+  const [startDate, setStartDate] = useState(formatDate(thirtyDaysAgo))
+  const [endDate, setEndDate] = useState(formatDate(today))
   const [timezone, setTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone)
   const [limit, setLimit] = useState(5)
   const [offset, setOffset] = useState(0)
+  const [isOpenCam, setIsOpenCam] = useState(false)
   const [cookies] = useCookies(['token', 'user'])
   const token = cookies.token
   const user = cookies.user
   const baseUrl = process.env.REACT_APP_API_BASE_URL
   const apiGeoUrl = process.env.REACT_APP_API_GEO_URL
   const key = process.env.REACT_APP_API_GEO_KEY
+
+  const webcamRef = useRef<Webcam>(null)
+  const [imgSrc, setImgSrc] = useState<string | null | undefined>(null)
+
+  const capture = useCallback(() => {
+    const imageSrc = webcamRef.current?.getScreenshot()
+    setImgSrc(imageSrc)
+    if (imageSrc) {
+      const imageBlob = b64toBlob(imageSrc, 'image/webp')
+      console.log(imageBlob)
+      setValue('photo', imageBlob)
+    }
+  }, [webcamRef])
+
+  const b64toBlob = (b64Data: string, contentType = '', sliceSize = 512) => {
+    const [header, base64Data] = b64Data.split(',')
+    const byteCharacters = atob(base64Data)
+    const byteArrays = []
+
+    for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+      const slice = byteCharacters.slice(offset, offset + sliceSize)
+
+      const byteNumbers = new Array(slice.length)
+      for (let i = 0; i < slice.length; i++) {
+        byteNumbers[i] = slice.charCodeAt(i)
+      }
+
+      const byteArray = new Uint8Array(byteNumbers)
+      byteArrays.push(byteArray)
+    }
+
+    const blob = new Blob(byteArrays, { type: contentType })
+    return blob
+  }
+  type FormValues = {
+    location: string
+    longitude: string | number
+    latitude: string | number
+    photo: Blob
+    status: string
+  }
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    formState: { errors },
+    watch,
+  } = useForm<FormValues>()
 
   const mutation = useMutation({
     mutationFn: async (formData: FormData) => {
@@ -77,30 +131,22 @@ const HomePage: React.FC = () => {
     },
   })
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault()
-
-    if (longitude === null || latitude === null) {
-      alert('Please allow location access to mark attendance')
+  const handleSubmitForm = async (data: any) => {
+    if (!data.longitude || !data.latitude) {
+      toast.error('Please click get location for set your location')
       return
     }
 
     const formData = new FormData()
-    formData.append('longitude', longitude.toString())
-    formData.append('latitude', latitude.toString())
-    formData.append('location', location)
-    formData.append('status', status)
-    if (photo) {
-      formData.append('photo', photo)
+    formData.append('longitude', data.longitude.toString())
+    formData.append('latitude', data.latitude.toString())
+    formData.append('location', data.location)
+    formData.append('status', data.status)
+    if (data.photo) {
+      formData.append('photo', data.photo)
     }
 
     mutation.mutate(formData)
-  }
-
-  const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files[0]) {
-      setPhoto(event.target.files[0])
-    }
   }
 
   const getLocation = () => {
@@ -108,8 +154,8 @@ const HomePage: React.FC = () => {
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const { latitude, longitude } = position.coords
-          setLongitude(longitude)
-          setLatitude(latitude)
+          setValue('longitude', longitude)
+          setValue('latitude', latitude)
 
           if (!key) {
             alert('API key is missing')
@@ -128,7 +174,7 @@ const HomePage: React.FC = () => {
             const data = await response.json()
 
             if (data.length > 0) {
-              setLocation(`${data[0].name}, ${data[0].state}, ${data[0].country}.`)
+              setValue('location', `${data[0].name}, ${data[0].state}, ${data[0].country}.`)
             } else {
               alert('Location not found')
             }
@@ -202,14 +248,14 @@ const HomePage: React.FC = () => {
       <Navbar />
       <div className="container mx-auto mt-4">
         <h1 className="text-2xl font-bold">Hello, {user.profile?.firstName ?? user.profile.lastName}</h1>
-        <form onSubmit={handleSubmit} className="mt-4">
+        <form onSubmit={handleSubmit(handleSubmitForm)} className="mt-4">
           <div className="mb-4">
             <button type="button" onClick={getLocation} className="bg-blue-500 text-white px-4 py-2 rounded">
               Get Location
             </button>
-            {longitude && latitude && (
+            {watch('longitude') && watch('latitude') && (
               <p>
-                Longitude: {longitude}, Latitude: {latitude}
+                Longitude: {watch('longitude')}, Latitude: {watch('latitude')}
               </p>
             )}
           </div>
@@ -217,17 +263,17 @@ const HomePage: React.FC = () => {
             <label className="block text-gray-700">Location</label>
             <input
               type="text"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
+              defaultValue={watch('location')}
+              {...register('location', { required: 'Location is required' })}
               className="w-full p-2 border border-gray-300 rounded"
-              //   disabled={longitude !== null && latitude !== null}
             />
+            {errors.location && <p className="mt-2 text-sm text-red-500">{errors.location.message}</p>}
           </div>
           <div className="mb-4">
             <label className="block text-gray-700">Status</label>
             <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
+              defaultValue={'PRESENT'}
+              {...register('status', { required: 'Status is required' })}
               className="w-full p-2 border border-gray-300 rounded"
               required
             >
@@ -238,14 +284,24 @@ const HomePage: React.FC = () => {
           </div>
           <div className="mb-4">
             <label className="block text-gray-700">Photo</label>
-            <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={handlePhotoChange}
-              className="w-full p-2 border border-gray-300 rounded"
-              required
-            />
+            {isOpenCam ? (
+              imgSrc ? (
+                <img src={imgSrc} alt="webcam" />
+              ) : (
+                <>
+                  <Webcam height={600} width={600} ref={webcamRef} />
+                  <div className="btn-container">
+                    <button type="button" className="bg-gray-600 text-white px-4 py-2 rounded my-2" onClick={capture}>
+                      Capture photo
+                    </button>
+                  </div>
+                </>
+              )
+            ) : (
+              <button className="bg-gray-600 text-white px-4 py-2 rounded" onClick={() => setIsOpenCam(true)}>
+                Open Camera
+              </button>
+            )}
           </div>
           <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded">
             Mark Attendance
@@ -275,7 +331,7 @@ const HomePage: React.FC = () => {
               />
             </div>
             <div className="mb-4">
-              <label className="block text-gray-700">Timezone</label>
+              <label className="block text-gray-700">Set Timezone</label>
               <select
                 value={timezone}
                 onChange={(e) => setTimezone(e.target.value)}
